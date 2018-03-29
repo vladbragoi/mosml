@@ -9,4 +9,4 @@ This repository contains some basics of Mosml for the Compilers course at Univer
 
 ![Mosml Documentation](http://mosml.org/mosmllib/)
 
-![Mosml Interpreter 2.10.1 [amd64.deb]](https://launchpad.net/~kflarsen/+archive/ubuntu/mosml/+files/mosml_2.10.1-0ubuntu0_amd64.deb)
+![Mosml Interpreter 2.10.1 [ubuntu_amd64.deb]](https://launchpad.net/~kflarsen/+archive/ubuntu/mosml/+files/mosml_2.10.1-0ubuntu0_amd64.deb)
