@@ -49,13 +49,13 @@ fun fact(1) = 1
 
 load "Int";                                 (* Carica il modulo Int (per poter usare il metodo toString *)
 let fun loop(count) = (
-  print("Count = ");
-  print(Int.toString(count));
-  print("\n");
-  if count < 10 then
-      loop(count+1)
-  else
-      count)
-in
-    loop(0)
+    print("Count = ");
+    print(Int.toString(count));
+    print("\n");
+    if count < 10 then
+        loop(count+1)
+    else
+        count)
+    in
+        loop(0)
 end;                                        (* Iterazione ricorsiva *)

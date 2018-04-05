@@ -1,3 +1,10 @@
+(* Define a datatype `btree’ representing binary trees.
+Then write the following functions:
+occ: btree * int → bool
+This function decides whether an integer occurs in a tree or not.
+sm: btree → int
+This function returns the sum of all the labels of a binary tree of integers. *)
+
 datatype btree = leaf of int 
             | node of int * btree * btree;
 
