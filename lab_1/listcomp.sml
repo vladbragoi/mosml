@@ -41,11 +41,14 @@ fun lookup k0 ((k1,v) :: vtable) = if k0 = k1 then SOME v else lookup k0 vtable
 fun eval vtable e =
   case e of
       Const v => v
-    | Var k =>
-      raise Fail "Var case not handled yet."
-    | List l =>
-      raise Fail "Compr case not handled yet."
-    | Compr (e, k, a, p) =>
+    | Var k => (case lookup k vtable of
+                      SOME v => v
+                    | NONE => raise Fail ("Unknown variable " ^ k))
+    | List l => ListVal (map (eval vtable) l)
+    | Compr (e, k, a, p) => (
+        case eval vtable a of 
+           
+    )
       raise Fail "Compr case not handled yet."
     | Range (x,y) =>
       raise Fail "Range case not handled yet."
