@@ -1,0 +1,163 @@
+= Fasto Compiler Design Document
+
+
+The Fasto compiler is implemented in Standard ML and consists of a
+number of modules, each implementing one analysis or transformation
+step.  A _driver program_ is responsible for reading Fasto source
+programs from the file system, passing the text to the parser, passing
+the resulting AST through various compiler passes, and finally writing
+the generated assembly code back to a file.  The Fasto compiler does
+not itself contain an assembler, but instead produces assembly code
+suitable for use in the MARS MIPS
+simulator.footnote:[http://courses.missouristate.edu/KenVollmar/MARS/]
+
+== Description of the Fasto compiler modules
+
+This section introduces the compiler's structure and explains some
+details and reasons for particular choices.
+
+=== Lexer, Parser and Symbol Table
+
+The lexer and parser are implemented in files `Lexer.lex` and
+`Parser.grm`, respectively.  The lexical rules and grammar have
+already been described in the main project document.
+
+File `SymTab.sml` provides a polymorphic implementation of the symbol
+table.  The symbol table is simply a list of tuples, in which the
+first term is a string, denoting the name of a variable/function, and
+the second term is the information associated to that name. The type
+of the second term is polymorphic, i.e. different types of information
+will be stored in different tables during processing.  The main
+functions are: (i) `bind`, which adds a name-value pair to the symbol
+table (potentially hiding an older entry), and (ii) `lookup`.
+Function `lookup` receives as input the name of a variable, `n`, and
+searches the symbol table to find the closest binding for `n`. If no
+such binding exists then option `NONE` is returned, otherwise `SOME
+m`, where `m` is the information associated with `n`.
+
+=== Abstract Syntax Representation
+
+The abstract syntax representation is defined in the file Fasto.sml:
+the entire program has either type `Fasto.UnknownTypes.Prog` or
+`Fasto.KnownTypes.Prog`, depending on which phase the compiler is in.
+A program is a list of function declarations.  A function declaration
+has type `FunDec`.  Expressions and types are built by the
+constructors of types `Exp` and `Type`, respectively.
+
+`Exp`, `FunDec`, `Prog` and other central constructors are located
+inside the `FastoFn` functor.  This means that whenever `TypeAnnot`
+occurs, the actual type is `unit` (the SML type of the value `()`) if
+they are used in the `UnknownTypes` structure, or `Type` if in the
+`KnownTypes` structure.  After parsing, a program uses the
+`UnknownTypes` version of `TypeAnnot`, namely `unit`, and after type
+checking, a program uses the `KnownTypes` version -- `Type`.
+
+Note that several type constructors of `Exp` contain `Type` nodes.
+For instance the indexing constructor is declared as `Index of string
+* Exp * TypeAnnot * pos`.  These type nodes are replaced by the
+correct type by the type checker, and used in the MIPS code generation
+phase. For example, generating MIPS code for array indexing (`a[i]`)
+requires to know whether the element type is stored in one byte or in
+one word (four bytes), i.e. whether to use a load-byte or load-word
+instruction.
+
+`Fasto.sml` also provides functions to pretty print a program
+(prettyPrint) a function (ppFun), a type (ppType), or an expression
+(ppExp).  Pretty printing can be used for user-friendlier error
+messages and for debugging.
+
+=== Interpreter
+
+The interpreter is implemented in file `Interpret.sml`.  The entry
+point is function `evalPgm`, which builds the symbol table for
+functions and starts the interpretation of the program by interpreting
+function `main`.
+
+Interpreting a (call to a) function is implemented by function
+`callFun`, which: (i) evaluates the function arguments, (ii) creates a
+new symbol table for variables and binds the evaluated arguments to
+the function's formal arguments, and (iii) continues by interpreting
+the expression that corresponds to the body of the function.
+
+Finally, interpreting an expression is implemented by `evalExp`
+via case analysis on the type constructors of `Exp`.
+
+=== Type Checking
+
+The type checker is implemented in file `Type.sml`.  The entry point is
+
+`checkProgram : Fasto.UnknownTypes.Prog -> Fasto.KnownTypes.Prog`
+
+which verifies that all functions in the program have the declared
+type and annotates the nodes.
+
+Type checking a function means to verify that the result type of the
+function matches the type of the function-body expression, given the
+formal parameters have the declared types.  Typechecking a function
+_application_ means to verify that the types of the actual and the
+formal parameters match.
+
+Expressions are type-checked recursively, building types in a bottom-up fashion.
+For instance, type-checking an `if-then-else` means to
+check that the condition is boolean, and to determine the types of the `then`
+and `else` sub-expressions and to verify that these types are the same.
+
+Type checking an expression is mainly implemented by `expType` via
+case analysis on the type constructors of `Exp`.  _Your changes to the
+type checker will mainly extend `expType`'s implementation._
+
+As mentioned, type information also needs to be passed to the MIPS
+code generator, especially for arrays and for the built-in `write`
+function.  Therefore, `checkProgram` builds a new abstract-syntax
+representation in which the type information of various
+`Fasto.UnknownTypes.Exp` constructors are changed to the correct
+types, represented in `Fasto.KnownTypes.Exp` (for instance the type of
+the array for array-indexing `a[i]`).
+
+=== High-Level Optimisations
+
+An optimising compiler is typically organised as a set of _passes_,
+each of which take as input a program, and produce as output an
+equivalent - but optimised - program.  The Fasto compiler follows this
+design, and implements each pass as a distinct module.  All but one of
+these are fully implemented for you, but will be covered for
+completeness.
+
+THIS PART IS OPTIONAL.
+
+
+
+=== Fasto Compiler Driver
+
+The main driver of the (whole) compiler resides in file
+`src/FastoC.sml`, and the executable will be generated in `bin/fasto`
+(or `bin/fasto.exe` on Windows). To interpret an input program located
+in file `tests/filename.foo`, run
+
+----
+$ ./bin/fasto -i tests/filename
+----
+
+To compile-to/generate \mips code while applying the high-level optimizations,
+run
+
+----
+$ ./bin/fasto -o tests/filename
+----
+
+
+On both Linux, MacOS and Windows, the whole compiler, including the lexer and parser, 
+can be built by entering the `src` directory and running
+
+----
+$ make
+----
+
+Once compiled, run
+
+----
+$ ./bin/fasto
+----
+
+with no arguments to get more help on which flags you can pass to the
+compiler.
